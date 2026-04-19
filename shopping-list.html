@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>買い物リストアプリ 商品マスタ入出力対応版</title>
+  <style>
+    :root{--bg:#f8fafc;--card:#ffffff;--line:#e2e8f0;--text:#0f172a;--sub:#475569;--muted:#94a3b8;--accent:#2563eb;--accent-soft:#dbeafe}
+    *{box-sizing:border-box} body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Sans","Yu Gothic",sans-serif;background:var(--bg);color:var(--text)}
+    .wrap{max-width:1200px;margin:0 auto;padding:20px}.grid{display:grid;gap:16px}.top{grid-template-columns:1.5fr 1fr}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:0 1px 2px rgba(15,23,42,.04)} .card .inner{padding:18px}
+    h1{margin:0;font-size:30px} h2{margin:0 0 12px;font-size:20px} h3{margin:0;font-size:16px}
+    p{margin:0}.sub{color:var(--sub);line-height:1.6}
+    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.stat{padding:18px;border:1px solid var(--line);border-radius:18px;background:#fff}
+    .stat .label{color:var(--sub);font-size:13px}.stat .value{font-size:30px;font-weight:700;margin-top:8px}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+    button,label.file-btn{border:1px solid var(--line);background:#fff;color:var(--text);border-radius:14px;padding:10px 14px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+    button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap}.tab{padding:10px 14px;border:1px solid var(--line);border-radius:999px;background:#fff;cursor:pointer}
+    .tab.active{background:var(--accent-soft);border-color:#93c5fd;color:#1d4ed8}
+    .toolbar{display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center}
+    input[type="text"], textarea, select{width:100%;border:1px solid var(--line);border-radius:14px;padding:12px 14px;font:inherit;background:#fff}
+    textarea{min-height:90px;resize:vertical}.checkbox-row{display:flex;align-items:center;gap:8px}
+    .badge{display:inline-block;padding:4px 10px;border:1px solid var(--line);border-radius:999px;font-size:12px;color:var(--sub);background:#fff}
+    .content{display:grid;grid-template-columns:1.15fr .85fr;gap:16px;margin-top:16px}.category{margin-bottom:18px}.category-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+    .item{border:1px solid var(--line);border-radius:18px;padding:14px;display:flex;justify-content:space-between;gap:12px;background:#fff;margin-bottom:10px}
+    .item.off{background:#f8fafc;opacity:.78}.item-main{display:flex;gap:12px;min-width:0}.item-title{font-weight:700}.item-title.off{text-decoration:line-through;color:var(--muted)}
+    .item-note{color:var(--sub);font-size:13px;margin-top:4px;line-height:1.5}.item-actions{display:flex;gap:8px;align-items:start}
+    .small{font-size:13px;color:var(--sub)}.help-box{background:#f8fafc;border:1px solid var(--line);border-radius:18px;padding:14px;line-height:1.7}
+    .empty{text-align:center;padding:40px 20px;border:1px dashed var(--line);border-radius:18px;color:var(--sub)}
+    .modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.38);display:none;align-items:center;justify-content:center;padding:16px}
+    .modal{width:min(720px,100%);background:#fff;border-radius:20px;border:1px solid var(--line)} .modal .inner{padding:18px}.form-grid{display:grid;gap:12px}.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .right{text-align:right}.hidden{display:none}.footer-note{margin-top:10px;color:var(--sub);font-size:13px}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.category-order-box{margin-top:16px;padding:14px;border:1px solid var(--line);border-radius:18px;background:#fff}
+.category-order-list{display:grid;gap:8px;margin-top:10px}
+.category-order-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:#fff}
+.category-order-name{font-weight:600}
+.category-order-actions{display:flex;gap:8px;flex-wrap:wrap}
+.category-order-actions button{padding:8px 10px;border-radius:10px}
+    @media (max-width:900px){.top,.content{grid-template-columns:1fr}.toolbar{grid-template-columns:1fr}.stats{grid-template-columns:repeat(3,1fr)}}
+    @media (max-width:640px){.wrap{padding:12px}h1{font-size:24px}.stats{grid-template-columns:1fr}.row2{grid-template-columns:1fr}.item{flex-direction:column}.item-actions{justify-content:flex-end}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="grid top">
+      <div class="card"><div class="inner">
+        <h1>買い物リストアプリ</h1>
+        <p class="sub" style="margin-top:10px">商品マスタの input / output に対応した版です。CSV または JSON で商品マスタを取り込み、現在のデータを書き出せます。</p>
+        <div class="actions">
+          <button class="primary" id="openAdd">＋ 商品追加</button>
+          <button id="shareLineBtn">LINE共有</button>
+          <button id="exportJsonBtn">JSON書き出し</button>
+          <button id="exportCsvBtn">CSV書き出し</button>
+          <label class="file-btn">商品マスタ読込<input id="importFile" type="file" accept=".json,.csv,text/csv,application/json" class="hidden"></label>
+          <button id="resetBtn">初期データに戻す</button>
+        </div>
+        <div class="footer-note">列は「店名, カテゴリー, 商品名, チェック, メモ」に対応しています。</div>
+      </div></div>
+
+      <div class="stats">
+        <div class="stat"><div class="label">全件</div><div class="value" id="statTotal">0</div></div>
+        <div class="stat"><div class="label">買う予定</div><div class="value" id="statPlanned">0</div></div>
+        <div class="stat"><div class="label">未予定</div><div class="value" id="statUnplanned">0</div></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px"><div class="inner">
+      <div class="tabs" id="tabs"></div>
+      <div class="toolbar" style="margin-top:14px">
+        <input type="text" id="searchInput" placeholder="商品名・カテゴリー・メモで検索">
+        <label class="checkbox-row"><input type="checkbox" id="checkedOnly"> 買う予定のみ表示</label>
+        <div class="small">表示件数 <strong id="visibleCount">0</strong></div>
+      </div>
+      <div class="category-order-box">
+        <div class="small"><strong>カテゴリ表示順</strong>　上下ボタンで並べ替えできます</div>
+        <div id="categoryOrderList" class="category-order-list"></div>
+      </div>
+    </div></div>
+
+    <div class="content">
+      <div class="card"><div class="inner">
+        <h2>商品一覧</h2>
+        <div id="listArea"></div>
+      </div></div>
+
+      <div class="card"><div class="inner">
+        <h2>商品マスタ入出力</h2>
+        <div class="help-box">
+          <strong>入力できる形式</strong><br>
+          ・CSV<br>
+          ・JSON
+        </div>
+        <div style="height:12px"></div>
+        <div class="help-box">
+          <strong>CSVの見出し例</strong><br>
+          <span class="mono">店名,カテゴリー,商品名,チェック,メモ</span><br>
+          <span class="mono">業務スーパー,野菜,玉ねぎ,TRUE,特売</span>
+        </div>
+        <div style="height:12px"></div>
+        <div class="help-box">
+          <strong>取り込み時の仕様</strong><br>
+          ・「チェック」は TRUE / FALSE / 1 / 0 / はい / いいえ に対応<br>
+          ・不足列があっても、店名・カテゴリー・商品名があれば取り込み可能<br>
+          ・取り込み時は現在データを置き換え
+        </div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal"><div class="inner">
+      <h2 id="modalTitle">商品追加</h2>
+      <div class="form-grid">
+        <div class="row2">
+          <div><div class="small" style="margin-bottom:6px">店舗</div><select id="formStore"></select></div>
+          <div><div class="small" style="margin-bottom:6px">カテゴリー</div><input type="text" id="formCategory" placeholder="例：野菜、肉、日用品"></div>
+        </div>
+        <div><div class="small" style="margin-bottom:6px">商品名</div><input type="text" id="formName" placeholder="例：キャベツ"></div>
+        <div><div class="small" style="margin-bottom:6px">メモ</div><textarea id="formNote" placeholder="容量、特売日、ブランドなど"></textarea></div>
+        <label class="checkbox-row"><input type="checkbox" id="formChecked" checked> 買う予定に入れる</label>
+      </div>
+      <div class="actions right" style="justify-content:flex-end;margin-top:14px">
+        <button id="cancelBtn">キャンセル</button>
+        <button class="primary" id="saveBtn">保存</button>
+      </div>
+    </div></div>
+  </div>
+
+<script>
+const STORE_KEY = "shopping-list-html-master-io-v1";
+const stores = ["すべて","業務スーパー","コープ","ロピア","ネット","薬局","100均"];
+const defaultItems = [
+  { id: 1001, store: "業務スーパー", category: "野菜", name: "玉ねぎ", checked: true, note: "" },
+  { id: 1002, store: "コープ", category: "乳製品", name: "牛乳", checked: true, note: "1L" },
+  { id: 1003, store: "ロピア", category: "肉", name: "鶏もも肉", checked: false, note: "特売日を確認" },
+  { id: 1004, store: "ネット", category: "日用品", name: "キッチンペーパー", checked: true, note: "まとめ買い" },
+  { id: 1005, store: "薬局", category: "衛生用品", name: "マスク", checked: false, note: "" },
+  { id: 1006, store: "100均", category: "消耗品", name: "ゴミ袋", checked: true, note: "45L" }
+];
+let items = loadItems();
+let activeStore = "すべて";
+let editingId = null;
+const CATEGORY_ORDER_KEY = "shopping-list-category-order-v1";
+let categoryOrder = loadCategoryOrder();
+function loadItems(){ try{ const raw = localStorage.getItem(STORE_KEY); return raw ? JSON.parse(raw) : structuredClone(defaultItems); }catch(e){ return structuredClone(defaultItems); } }
+function saveItems(){ localStorage.setItem(STORE_KEY, JSON.stringify(items)); }
+function loadCategoryOrder(){
+  try{
+    const raw = localStorage.getItem(CATEGORY_ORDER_KEY);
+    return raw ? JSON.parse(raw) : [];
+  }catch(e){
+    return [];
+  }
+}
+function saveCategoryOrder(){
+  localStorage.setItem(CATEGORY_ORDER_KEY, JSON.stringify(categoryOrder));
+}
+function syncCategoryOrder(){
+  const categories = [...new Set(items.map(i => String(i.category || "").trim()).filter(Boolean))];
+  if(categoryOrder.length === 0){
+    categoryOrder = categories.slice();
+  }else{
+    categories.forEach(c => {
+      if(!categoryOrder.includes(c)) categoryOrder.push(c);
+    });
+    categoryOrder = categoryOrder.filter(c => categories.includes(c));
+  }
+  saveCategoryOrder();
+}
+function getCategoryIndex(category){
+  const idx = categoryOrder.indexOf(category);
+  return idx === -1 ? 999999 : idx;
+}
+function moveCategoryUp(index){
+  if(index <= 0) return;
+  const tmp = categoryOrder[index - 1];
+  categoryOrder[index - 1] = categoryOrder[index];
+  categoryOrder[index] = tmp;
+  saveCategoryOrder();
+  renderAll();
+}
+function moveCategoryDown(index){
+  if(index >= categoryOrder.length - 1) return;
+  const tmp = categoryOrder[index + 1];
+  categoryOrder[index + 1] = categoryOrder[index];
+  categoryOrder[index] = tmp;
+  saveCategoryOrder();
+  renderAll();
+}
+window.moveCategoryUp = moveCategoryUp;
+window.moveCategoryDown = moveCategoryDown;
+function escapeHtml(s){ return String(s ?? "").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function grouped(list){ const obj={}; for(const item of list){ if(!obj[item.category]) obj[item.category]=[]; obj[item.category].push(item); } return obj; }
+function filteredItems(){ const q=document.getElementById("searchInput").value.trim().toLowerCase(); const checkedOnly=document.getElementById("checkedOnly").checked; return items.filter(i => activeStore === "すべて" ? true : i.store === activeStore).filter(i => checkedOnly ? i.checked : true).filter(i => !q ? true : [i.store,i.category,i.name,i.note || ""].join(" ").toLowerCase().includes(q)).sort((a,b) => { const catDiff = getCategoryIndex(a.category) - getCategoryIndex(b.category); if(catDiff !== 0) return catDiff; return a.name.localeCompare(b.name, "ja"); }); }
+function renderTabs(){ const el=document.getElementById("tabs"); el.innerHTML = stores.map(s => `<button class="tab ${s===activeStore?'active':''}" data-store="${escapeHtml(s)}">${escapeHtml(s)}</button>`).join(""); el.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", ()=>{ activeStore = btn.dataset.store; renderAll(); })); }
+function renderStats(){ document.getElementById("statTotal").textContent = items.length; const planned = items.filter(i => i.checked).length; document.getElementById("statPlanned").textContent = planned; document.getElementById("statUnplanned").textContent = items.length - planned; }
+function renderList(){ const list = filteredItems(); document.getElementById("visibleCount").textContent = list.length; const area = document.getElementById("listArea"); if(!list.length){ area.innerHTML = '<div class="empty">該当する商品がありません</div>'; return; } const g = grouped(list); area.innerHTML = Object.entries(g).map(([category, arr]) => `<div class="category"><div class="category-head"><h3>${escapeHtml(category)}</h3><span class="badge">${arr.length}</span></div>${arr.map(item => `<div class="item ${item.checked ? '' : 'off'}"><div class="item-main"><input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleChecked(${item.id})"><div><div class="item-title ${item.checked ? '' : 'off'}">${escapeHtml(item.name)} <span class="badge">${escapeHtml(item.store)}</span></div>${item.note ? `<div class="item-note">${escapeHtml(item.note)}</div>` : ``}</div></div><div class="item-actions"><button onclick="openEdit(${item.id})">編集</button><button onclick="removeItem(${item.id})">削除</button></div></div>`).join("")}</div>`).join(""); }
+function renderFormStoreOptions(){ const sel=document.getElementById("formStore"); sel.innerHTML = stores.filter(s => s !== "すべて").map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join(""); }
+function renderCategoryOrderUI(){
+  const el = document.getElementById("categoryOrderList");
+  if(!el) return;
+  if(categoryOrder.length === 0){
+    el.innerHTML = '<div class="small">カテゴリがありません</div>';
+    return;
+  }
+  el.innerHTML = categoryOrder.map((category, index) => `
+    <div class="category-order-row">
+      <div class="category-order-name">${escapeHtml(category)}</div>
+      <div class="category-order-actions">
+        <button onclick="moveCategoryUp(${index})" ${index === 0 ? 'disabled' : ''}>↑ 上へ</button>
+        <button onclick="moveCategoryDown(${index})" ${index === categoryOrder.length - 1 ? 'disabled' : ''}>↓ 下へ</button>
+      </div>
+    </div>
+  `).join("");
+}
+function renderAll(){ syncCategoryOrder(); renderTabs(); renderStats(); renderList(); renderCategoryOrderUI(); saveItems(); }
+function openModal(){ document.getElementById("modalBackdrop").style.display = "flex"; }
+function closeModal(){ document.getElementById("modalBackdrop").style.display = "none"; }
+function resetForm(){ editingId = null; document.getElementById("modalTitle").textContent = "商品追加"; document.getElementById("formStore").value = activeStore === "すべて" ? "業務スーパー" : activeStore; document.getElementById("formCategory").value = ""; document.getElementById("formName").value = ""; document.getElementById("formNote").value = ""; document.getElementById("formChecked").checked = true; }
+function openAdd(){ resetForm(); openModal(); }
+function openEdit(id){ const item=items.find(i => i.id === id); if(!item) return; editingId = id; document.getElementById("modalTitle").textContent = "商品編集"; document.getElementById("formStore").value = item.store; document.getElementById("formCategory").value = item.category; document.getElementById("formName").value = item.name; document.getElementById("formNote").value = item.note || ""; document.getElementById("formChecked").checked = !!item.checked; openModal(); }
+window.openEdit = openEdit;
+function saveForm(){ const store=document.getElementById("formStore").value; const category=document.getElementById("formCategory").value.trim(); const name=document.getElementById("formName").value.trim(); const note=document.getElementById("formNote").value.trim(); const checked=document.getElementById("formChecked").checked; if(!store || !category || !name){ alert("店舗、カテゴリー、商品名を入力してください。"); return; } if(editingId){ items = items.map(i => i.id === editingId ? {...i, store, category, name, note, checked} : i); } else { items.unshift({id: Date.now(), store, category, name, note, checked}); } closeModal(); renderAll(); }
+function toggleChecked(id){ items = items.map(i => i.id === id ? {...i, checked: !i.checked} : i); renderAll(); }
+window.toggleChecked = toggleChecked;
+function removeItem(id){ if(!confirm("この商品を削除しますか？")) return; items = items.filter(i => i.id !== id); renderAll(); }
+window.removeItem = removeItem;
+function toCsvValue(v){ const s = String(v ?? ""); if (/[",\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"'; return s; }
+function exportJson(){ const blob = new Blob([JSON.stringify(items, null, 2)], {type:"application/json"}); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "shopping_master.json"; a.click(); URL.revokeObjectURL(url); }
+function exportCsv(){ const header=["店名","カテゴリー","商品名","チェック","メモ"]; const rows = items.map(i => [i.store, i.category, i.name, i.checked ? "TRUE" : "FALSE", i.note || ""]); const csv = [header, ...rows].map(row => row.map(toCsvValue).join(",")).join("\r\n"); const blob = new Blob(["\ufeff" + csv], {type:"text/csv;charset=utf-8;"}); const url = URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download="shopping_master.csv"; a.click(); URL.revokeObjectURL(url); }
+function parseCsv(text){ const rows=[]; let row=[]; let value=""; let inQuotes=false; for(let i=0;i<text.length;i++){ const char=text[i]; const next=text[i+1]; if(inQuotes){ if(char==='"' && next==='"'){ value += '"'; i++; } else if(char==='"'){ inQuotes=false; } else { value += char; } } else { if(char==='"'){ inQuotes=true; } else if(char===','){ row.push(value); value=''; } else if(char==='\n'){ row.push(value); rows.push(row); row=[]; value=''; } else if(char==='\r'){ } else { value += char; } } } if(value.length>0 || row.length>0){ row.push(value); rows.push(row); } return rows.filter(r => r.some(v => String(v).trim() !== "")); }
+function normalizeBool(v){ const s = String(v ?? "").trim().toLowerCase(); return ["true","1","yes","y","はい","有","on","checked","〇","○"].includes(s); }
+function normalizeRow(obj, idx){ const store=obj["店名"] || obj["store"] || obj["店舗"] || ""; const category=obj["カテゴリー"] || obj["category"] || ""; const name=obj["商品名"] || obj["name"] || obj["商品"] || ""; const checkedRaw=obj["チェック"] ?? obj["checked"] ?? obj["購入対象"] ?? ""; const note=obj["メモ"] || obj["note"] || ""; if(!store || !category || !name) return null; return { id: Date.now() + idx, store: String(store).trim(), category: String(category).trim(), name: String(name).trim(), checked: normalizeBool(checkedRaw), note: String(note || "").trim() }; }
+function importJson(file){ const reader = new FileReader(); reader.onload = () => { try{ const imported = JSON.parse(String(reader.result)); if(!Array.isArray(imported)) throw new Error(); items = imported.map((i, idx) => ({ id: i.id ?? (Date.now() + idx), store: i.store ?? i["店名"] ?? "", category: i.category ?? i["カテゴリー"] ?? "", name: i.name ?? i["商品名"] ?? "", checked: typeof i.checked === "boolean" ? i.checked : normalizeBool(i.checked ?? i["チェック"]), note: i.note ?? i["メモ"] ?? "" })).filter(i => i.store && i.category && i.name); renderAll(); alert("JSONの商品マスタを読み込みました。"); }catch(e){ alert("JSONの読み込みに失敗しました。"); } }; reader.readAsText(file, "utf-8"); }
+function importCsv(file){ const reader = new FileReader(); reader.onload = () => { try{ const text = String(reader.result).replace(/^\ufeff/, ""); const rows = parseCsv(text); if(rows.length < 2) throw new Error("no rows"); const header = rows[0].map(h => String(h).trim()); const imported = rows.slice(1).map((r, idx) => { const obj = {}; header.forEach((h, i) => obj[h] = r[i] ?? ""); return normalizeRow(obj, idx); }).filter(Boolean); if(!imported.length) throw new Error("empty"); items = imported; renderAll(); alert("CSVの商品マスタを読み込みました。"); }catch(e){ alert("CSVの読み込みに失敗しました。見出しは『店名,カテゴリー,商品名,チェック,メモ』で確認してください。"); } }; reader.readAsText(file, "utf-8"); }
+function resetData(){ if(!confirm("初期データに戻しますか？")) return; items = structuredClone(defaultItems); renderAll(); }
+
+function generateShareText(){
+  const shareItems = items
+    .filter(i => i.checked)
+    .sort((a,b) => { const storeDiff = a.store.localeCompare(b.store, "ja"); if(storeDiff !== 0) return storeDiff; const catDiff = getCategoryIndex(a.category) - getCategoryIndex(b.category); if(catDiff !== 0) return catDiff; return a.name.localeCompare(b.name, "ja"); });
+  if(!shareItems.length){
+    return "買い物が必要な商品はありません。";
+  }
+  const groupedByStore = {};
+  for(const item of shareItems){
+    if(!groupedByStore[item.store]) groupedByStore[item.store] = [];
+    groupedByStore[item.store].push(item);
+  }
+  let text = "【買い物リスト】\n\n";
+  Object.entries(groupedByStore).forEach(([store, list]) => {
+    text += `【${store}】\n`;
+    list.forEach(item => {
+      const memo = item.note ? `（${item.note}）` : "";
+      text += `・${item.name}${memo}\n`;
+    });
+    text += "\n";
+  });
+  return text.trim();
+}
+async function shareToLine(){
+  const text = generateShareText();
+  try{
+    if(navigator.clipboard && window.isSecureContext){
+      await navigator.clipboard.writeText(text);
+    }
+  }catch(e){
+  }
+  const lineUrl = "https://line.me/R/msg/text/?" + encodeURIComponent(text);
+  window.open(lineUrl, "_blank");
+}
+
+document.getElementById("openAdd").addEventListener("click", openAdd);
+document.getElementById("shareLineBtn").addEventListener("click", shareToLine);
+document.getElementById("cancelBtn").addEventListener("click", closeModal);
+document.getElementById("saveBtn").addEventListener("click", saveForm);
+document.getElementById("exportJsonBtn").addEventListener("click", exportJson);
+document.getElementById("exportCsvBtn").addEventListener("click", exportCsv);
+document.getElementById("resetBtn").addEventListener("click", resetData);
+document.getElementById("searchInput").addEventListener("input", renderList);
+document.getElementById("checkedOnly").addEventListener("change", renderList);
+document.getElementById("importFile").addEventListener("change", (e) => { const file = e.target.files && e.target.files[0]; if(!file) return; const name = file.name.toLowerCase(); if(name.endsWith(".json")) importJson(file); else if(name.endsWith(".csv")) importCsv(file); else alert("CSV または JSON ファイルを選択してください。"); e.target.value = ""; });
+document.getElementById("modalBackdrop").addEventListener("click", (e) => { if(e.target.id === "modalBackdrop") closeModal(); });
+renderFormStoreOptions(); renderAll();
+</script>
+</body>
+</html>
